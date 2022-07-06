@@ -6,51 +6,30 @@
 //! JWT_SECRET=secret cargo run -p example-jwt
 //! ```
 
+
 use axum::{
     routing::{get, post},
     Extension, Router,
 };
 
-use config::Config;
+#[macro_use]
+extern crate lazy_static;
 
-use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::{net::SocketAddr, sync::Arc, time::Duration};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+//todo insert debug feature of tracing library where you can view the event of each transaction in terminal/file easily
+
+use sqlx::postgres::{ PgPoolOptions};
+use std::{net::SocketAddr};
+
 
 mod db;
 mod handler;
 mod obj;
 mod logic;
 
-// Quick instructions
-//
-// - get an authorization token:
-//
-// curl -s \
-//     -w '\n' \
-//     -H 'Content-Type: application/json' \
-//     -d '{"client_id":"foo","client_secret":"bar"}' \
-//     http://localhost:3000/authorize
-//
-// - visit the protected area using the authorized token
-//
-// curl -s \
-//     -w '\n' \
-//     -H 'Content-Type: application/json' \
-//     -H 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiQGIuY29tIiwiY29tcGFueSI6IkFDTUUiLCJleHAiOjEwMDAwMDAwMDAwfQ.M3LAZmrzUkXDC1q5mSzFAs_kJrwuKz3jOoDmjJ0G4gM' \
-//     http://localhost:3000/protected
-//
-// - try to visit the protected area using an invalid token
-//
-// curl -s \
-//     -w '\n' \
-//     -H 'Content-Type: application/json' \
-//     -H 'Authorization: Bearer blahblahblah' \
-//     http://localhost:3000/protected
 
 use crate::{
-    handler::{protected, sign_up, using_connection_extractor, using_connection_pool_extractor},
-    obj::Claims,
+    handler::{protected, sign_up, using_connection_extractor, using_connection_pool_extractor}, obj::KEY_MAP,
 };
 
 #[tokio::main]
@@ -61,24 +40,10 @@ async fn main() {
     //     ))
     //     .with()
     //     .init();
-
     tracing_subscriber::fmt::init();
     tracing::log::info!("started main");
 
-    let settings = Config::builder() //TODO insert error handling for settings toml file
-        // Add in `./Settings.toml`
-        .add_source(config::File::with_name("./Settings.toml"))
-        // Add in settings from the environment (with a prefix of APP)
-        // Eg.. `APP_DEBUG=1 ./target/app` would set the `debug` key
-        .add_source(config::Environment::with_prefix("APP"))
-        .build()
-        .unwrap();
-
-    let value_map = settings
-        .try_deserialize::<std::collections::HashMap<String, String>>()
-        .unwrap();
-
-    let db_url = value_map.get(&"db_url".to_string()).unwrap();
+    let db_url = KEY_MAP.get(&"db_url".to_string()).unwrap();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -87,9 +52,6 @@ async fn main() {
         .await
         .expect("postgresql connection failed");
 
-    println!("values : {:?}", value_map);
-
-    tracing::log::info!("{:?}", value_map);
 
     let app = Router::new()
         .route("/signup/:id", post(sign_up))

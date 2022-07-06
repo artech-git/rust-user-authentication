@@ -1,30 +1,24 @@
 use axum::{extract::Path, Extension, Json};
 
-use blake2::{Blake2b, Blake2b512, Digest};
 
 use hyper::StatusCode;
-use jsonwebtoken::{encode, Header};
+
 use serde::Serialize;
-use serde_json::{json, Value};
-use sqlx::{query, PgPool};
-use sqlx_core::transaction;
+
+use sqlx::{PgPool};
+
 
 use crate::{
     db::{internal_error, DatabaseConnection},
-    obj::{AuthBody, AuthError, Claims, UserAuth, UserSignUp, KEYS}, logic::{get_hash, generate_claim},
+    obj::{AuthBody, AuthError, Claims, UserAuth, UserSignUp, UserDbAuth}, logic::{get_hash, generate_claim},
 };
-
-#[derive(Debug, sqlx::FromRow)]
-struct UserDbAuth {
-    uid: String,
-    name: String
-}
 
 //==============================[protected for authorization]====================================
 pub async fn protected(
     Json(payload): Json<UserAuth>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<AuthBody>, AuthError> {
+    
     tracing::log::info!("payload: {:?}", payload);
 
     let hash  = get_hash(&payload.secret);
@@ -154,13 +148,9 @@ pub async fn sign_up(
         return Err(AuthError::MissingCredentials);
     }
 
-    tracing::log::info!("called sign up");
-    //let mut transaction = pool.clone().begin().await.unwrap();
-
     tracing::log::info!("client secret: {:?}", payload.client_secret.as_bytes());
 
     //TODO insert improved hash function for this function to increase the compute speed
-
     let hash = get_hash(&payload.client_secret);
 
     tracing::log::info!(" hash: {:?}", hash);
@@ -168,10 +158,7 @@ pub async fn sign_up(
     let db_res = commit_to_db(&pool, &payload, &hash).await;
 
     match db_res {
-        //TODO add expirey time for claims from settings.toml
-        //TODO  extract keys for jwt secret from the settings.toml instead of env:
 
-        //TODO
         Ok(f) => {
 
             let token = generate_claim(payload.name, f)
