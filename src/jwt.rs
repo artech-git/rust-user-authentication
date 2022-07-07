@@ -6,7 +6,6 @@
 //! JWT_SECRET=secret cargo run -p example-jwt
 //! ```
 
-
 use axum::{
     routing::{get, post},
     Extension, Router,
@@ -15,21 +14,19 @@ use axum::{
 #[macro_use]
 extern crate lazy_static;
 
-
 //todo insert debug feature of tracing library where you can view the event of each transaction in terminal/file easily
 
-use sqlx::postgres::{ PgPoolOptions};
-use std::{net::SocketAddr};
-
+use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
 
 mod db;
 mod handler;
-mod obj;
 mod logic;
-
+mod obj;
 
 use crate::{
-    handler::{protected, sign_up, using_connection_extractor, using_connection_pool_extractor}, obj::KEY_MAP,
+    handler::{protected, sign_up, using_connection_extractor, using_connection_pool_extractor},
+    obj::KEY_MAP,
 };
 
 #[tokio::main]
@@ -45,13 +42,21 @@ async fn main() {
 
     let db_url = KEY_MAP.get(&"db_url".to_string()).unwrap();
 
-    let pool = PgPoolOptions::new()
+    let pool = match PgPoolOptions::new()
         .max_connections(5)
         //.connect_timeout(Duration::from_secs(3))
         .connect(&db_url)
         .await
-        .expect("postgresql connection failed");
-
+    {
+        Ok(p) => {
+            tracing::log::info!("connection succeed to database");
+            p
+        }
+        Err(e) => {
+            tracing::log::error!("connection to database failed:  {}", e);
+            panic!();
+        }
+    };
 
     let app = Router::new()
         .route("/signup/:id", post(sign_up))
@@ -62,8 +67,14 @@ async fn main() {
         )
         .layer(Extension(pool));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    tracing::debug!("listening on {}", addr);
+    let port = KEY_MAP
+        .get(&"PORT".to_string())
+        .unwrap_or(&"3000".to_string())
+        .parse::<u16>()
+        .unwrap();
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    tracing::info!("listening on {}", addr);
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
