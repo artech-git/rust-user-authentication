@@ -1,0 +1,50 @@
+
+# # Rust as the base image
+# FROM rust:1.49
+
+# # 1. Create a new empty shell project
+# RUN USER=root 
+
+# WORKDIR /home
+
+# # 2. Copy our manifests
+# COPY ./Cargo.lock ./Cargo.lock
+# COPY ./Cargo.toml ./Cargo.toml
+# COPY ./settings.toml ./settings.toml
+
+# # 4. Now that the dependency is built, copy your source code
+# COPY ./src/* ./src/
+
+# RUN cargo install --path .
+
+# # 3. Build only the dependencies to cache them
+# RUN cargo build --release
+# RUN rm src/*.rs
+
+# # 5. Build for release.
+# #RUN rm ./target/release/deps/*
+
+
+# CMD ["./target/release/jwt"]
+
+# EXPOSE 3000/tcp
+
+FROM rust:latest
+
+RUN USER=root
+
+EXPOSE 3000/tcp
+EXPOSE 5432/tcp
+
+COPY ./Cargo.toml ./Cargo.toml
+COPY ./Cargo.lock ./Cargo.lock
+COPY ./src ./src
+
+
+RUN cargo build --bin jwt --release
+
+#RUN rm -rf ./target/release/deps/
+
+COPY ./settings.toml ./settings.toml
+
+CMD ["./target/release/jwt"]
