@@ -1,68 +1,81 @@
-use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
 
-
-use jsonwebtoken::{Header, encode};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{encode, Header};
 use regex::Regex;
 
-use crate::obj::{Claims, KEYS, AuthError, KEY_MAP};
-
+use crate::obj::{AuthError, Claims, KEYS, KEY_MAP};
 
 //TODO validate user input of password
 //TODO validate user input of email string
 //TODO validate user input of name
 
-
 //TODO apply the improved hashing algorithm for the given function
 pub fn get_hash(client_secret: &String) -> String {
-
     let mut hasher = DefaultHasher::new();
 
     client_secret.hash(&mut hasher);
 
     let hash = hasher.finish();
-    
-    hash.to_string()
 
+    hash.to_string()
 }
 
-
-pub fn generate_claim(sub: String, uid: String ) -> Result<String, AuthError> {
-    
-    let exp = match KEY_MAP.get(&"token_validity".to_string()){
-        Some(token) => {
-            match token.to_owned().parse::<usize>() {
-                Ok(v) => v,
-                Err(v) => {
-                    tracing::log::error!("value must contain only numbers: {}", v);
-                    panic!();
-                }
+fn get_exp_time_duration() -> i64 {
+    match KEY_MAP.get(&"token_validity".to_string()) {
+        Some(token) => match token.to_owned().parse::<i64>() {
+            Ok(v) => return v,
+            Err(v) => {
+                tracing::log::error!("value must contain only numbers: {}", v);
+                return 60 * 60;
             }
-        }
+        },
         None => {
             tracing::log::error!("please insert token_validity parameter");
-            panic!();
+            return 60 * 60;
         }
+    }
+}
+
+//todo set token validation IAT & EXP  in claims using chrono lib.
+pub fn generate_claim(sub: String, uid: String) -> Result<String, AuthError> {
+    let my_iat = Utc::now().timestamp();
+    //let mut EXP = 0;
+    lazy_static! {
+        pub static ref EXPIRE: i64 = get_exp_time_duration();
     };
+
+    let my_exp = Utc::now()
+        .checked_add_signed(Duration::seconds(*EXPIRE))
+        .expect("invalid timestamp")
+        .timestamp();
 
     let claims = Claims {
         sub: sub,
         user_uid: uid,
         // Mandatory expiry time as UTC timestamp
-        exp: exp,  
+        iat: my_iat as usize,
+        exp: my_exp as usize,
     };
 
     // Create the authorization token
     let token = match encode(&Header::default(), &claims, &KEYS.encoding)
-        .map_err(|_| AuthError::TokenCreation) {
-            Ok(tok) => { tok }
-            Err(e) => { return Err(e); }
-        };
+        .map_err(|_| AuthError::TokenCreation)
+    {
+        Ok(tok) => tok,
+        Err(e) => {
+            return Err(e);
+        }
+    };
 
     // Send the authorized token
     return Ok(token);
 }
 
-
+//todo validation is failing .. diagnose the issue for signup route
 //==================================[credential validation functions]======================================
 pub fn check_email(email: &String) -> bool {
     lazy_static! {//todo evaluate the email constrain too
