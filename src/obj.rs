@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use axum::BoxError;
 use axum::body::HttpBody;
 use axum::extract::TypedHeader;
+use axum::BoxError;
 use axum::{
     async_trait,
     extract::{FromRequest, RequestParts},
@@ -17,16 +17,12 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::logic::{check_email, check_password, check_name};
+use crate::logic::{check_email, check_name, check_password};
 //=======================================================================================================
 
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
-    
-    let secret = match KEY_MAP.get(&"secret".to_string() ){
-
-        Some(value) => {
-            value.to_owned()
-        }
+    let secret = match KEY_MAP.get(&"secret".to_string()) {
+        Some(value) => value.to_owned(),
         None => {
             tracing::log::error!("please insert secret parameter in settings.toml");
             panic!();
@@ -36,39 +32,38 @@ pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     Keys::new(secret.as_bytes())
 });
 
-pub static KEY_MAP: Lazy<HashMap<String, String>> = Lazy::new( || {
-
-    let settings = match config::Config::builder() 
-        .add_source(config::File::with_name("./Settings.toml"))
+pub static KEY_MAP: Lazy<HashMap<String, String>> = Lazy::new(|| {
+    let settings = match config::Config::builder()
+        .add_source(config::File::with_name("./settings.toml"))
         .add_source(config::Environment::with_prefix("APP"))
         .build()
-        {
-            Ok(file) => file ,
-            Err(e) => {
-                tracing::log::error!("settings.toml file not found: {}",  e);
-                panic!();
-            }
-        };
+    {
+        Ok(file) => file,
+        Err(e) => {
+            tracing::log::error!("settings.toml file not found: {}", e);
+            panic!();
+        }
+    };
 
-    let value_map = match settings
-        .try_deserialize::<std::collections::HashMap<String, String>>()
-        {
-            Ok(values) => values,
-            Err(e) => {
-                tracing::log::error!("deserialization error of config variable: {}", e);
-                panic!();
-            }
-        };
-    
-    value_map        
+    let value_map = match settings.try_deserialize::<std::collections::HashMap<String, String>>() {
+        Ok(values) => values,
+        Err(e) => {
+            tracing::log::error!("deserialization error of config variable: {}", e);
+            panic!();
+        }
+    };
+
+    value_map
 });
 
 //=======================================================================================================
+//todo insert IAT field in claims
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
     pub user_uid: String,
     pub exp: usize,
+    pub iat: usize,
 }
 
 impl Display for Claims {
@@ -122,7 +117,7 @@ pub enum AuthError {
     MissingCredentials,
     TokenCreation,
     InvalidToken,
-    InternalError
+    InternalError,
 }
 
 impl IntoResponse for AuthError {
@@ -132,7 +127,7 @@ impl IntoResponse for AuthError {
             AuthError::MissingCredentials => (StatusCode::BAD_REQUEST, "Missing credentials"),
             AuthError::TokenCreation => (StatusCode::INTERNAL_SERVER_ERROR, "Token creation error"),
             AuthError::InvalidToken => (StatusCode::BAD_REQUEST, "Invalid token"),
-            AuthError::InternalError => (StatusCode::INTERNAL_SERVER_ERROR, "unkown error")
+            AuthError::InternalError => (StatusCode::INTERNAL_SERVER_ERROR, "unkown error"),
         };
 
         let body = Json(json!({
@@ -170,7 +165,7 @@ impl<B> FromRequest<B> for UserSignUp
 where
     B: Send + HttpBody,
     B::Data: Send,
-    B::Error: Into<BoxError>, 
+    B::Error: Into<BoxError>,
 {
     type Rejection = (StatusCode, &'static str);
 
@@ -179,12 +174,15 @@ where
         let Json(payload) = req.extract::<Json<UserSignUp>>().await.unwrap();
 
         if !check_email(&payload.client_secret) {
+            tracing::log::error!("email format is not valid: {}", payload.client_id);
             return Err((StatusCode::UNPROCESSABLE_ENTITY, "invalid email type"));
         }
         if !check_password(&payload.client_id) {
+            tracing::log::error!("password format is not valid: {}", payload.client_secret);
             return Err((StatusCode::UNPROCESSABLE_ENTITY, "invalid password format"));
         }
         if !check_name(&payload.name) {
+            tracing::log::error!("name format is not valid: {}", payload.name);
             return Err((StatusCode::UNPROCESSABLE_ENTITY, "invalid name format"));
         }
         Ok(payload)
@@ -218,6 +216,6 @@ impl UserAuth {
 #[derive(Debug, sqlx::FromRow)]
 pub struct UserDbAuth {
     pub uid: String,
-    pub name: String
+    pub name: String,
 }
 //=======================================================================================================
