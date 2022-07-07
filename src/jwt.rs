@@ -59,6 +59,7 @@ async fn main() {
     };
 
     let app = Router::new()
+        .route("/check", get(|| async{ "up".to_string() }))
         .route("/signup/:id", post(sign_up))
         .route("/auth/user/", get(protected))
         .route(
