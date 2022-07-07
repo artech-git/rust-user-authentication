@@ -1,3 +1,6 @@
+
+CREATE DATABASE auth;
+
 CREATE TABLE "public"."jwt_user" (
     "uid" character varying(255)  NOT NULL,
     "name" character varying(255)  NOT NULL,
