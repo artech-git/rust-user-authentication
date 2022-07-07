@@ -9,10 +9,6 @@ edition = "2018"
 name = "jwt"
 path = "./src/jwt.rs"
 
-[[bin]]
-name = "pg"
-path = "./src/testdb.rs"
-
 [dependencies]
 
 tokio = { version = "1.15.0", features = ["full"] }
@@ -24,12 +20,13 @@ json = "0.12.4"
 tempdir = "0.3.5"
 url = "2.2.2"
 
+sqlx-core = "^0.6.0"
 sqlx = { version = "0.6.0", features = ["runtime-tokio-rustls", "any", "postgres"] }
-sqlx-core = "0.6.0"
 
 axum = { version = "0.5.9", features = ["headers"] }
 tower = "0.4.13"
 tower-layer = "0.3.1"
+
 config = "0.13.1"
 
 digest = "0.10.3"
@@ -42,7 +39,7 @@ hyper = "0.14.16"
 
 jsonwebtoken = "8.1.1"
 
-couch_rs = "0.8.34"
+chrono = "0.4.19"
 
 tracing = "0.1.29"	
 tracing-subscriber = { version = "0.3", features = ["tracing"] }
