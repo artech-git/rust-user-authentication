@@ -1,16 +1,15 @@
 use axum::{extract::Path, Extension, Json};
 
-
 use hyper::StatusCode;
 
 use serde::Serialize;
 
-use sqlx::{PgPool};
-
+use sqlx::PgPool;
 
 use crate::{
     db::{internal_error, DatabaseConnection},
-    obj::{AuthBody, AuthError, Claims, UserAuth, UserSignUp, UserDbAuth}, logic::{get_hash, generate_claim},
+    logic::{generate_claim, get_hash},
+    obj::{AuthBody, AuthError, Claims, UserAuth, UserDbAuth, UserSignUp},
 };
 
 //==============================[protected for authorization]====================================
@@ -18,10 +17,9 @@ pub async fn protected(
     Json(payload): Json<UserAuth>,
     Extension(pool): Extension<PgPool>,
 ) -> Result<Json<AuthBody>, AuthError> {
-    
     tracing::log::info!("payload: {:?}", payload);
 
-    let hash  = get_hash(&payload.secret);
+    let hash = get_hash(&payload.secret);
 
     //TODO try converting the seleciton of all the field to the count only for i32 type i.e. COUNT(*) instead of
     let resp = format!(
@@ -38,10 +36,9 @@ pub async fn protected(
         .await
     {
         Ok(r) => {
-            tracing::log::info!("user : {:?}", r);
-            
-            let body = generate_claim(r.name, r.uid)
-            .map_err(|e| return e)?;
+            tracing::log::info!("user : {}", r);
+
+            let body = generate_claim(r.name, r.uid).map_err(|e| return e)?;
 
             return Ok(Json(AuthBody::new(body)));
         }
@@ -52,6 +49,7 @@ pub async fn protected(
         }
     }
 }
+
 
 //==============================[db transaction]====================================
 use std::error::Error;
@@ -148,8 +146,6 @@ pub async fn sign_up(
         return Err(AuthError::MissingCredentials);
     }
 
-    tracing::log::info!("client secret: {:?}", payload.client_secret.as_bytes());
-
     //TODO insert improved hash function for this function to increase the compute speed
     let hash = get_hash(&payload.client_secret);
 
@@ -158,11 +154,8 @@ pub async fn sign_up(
     let db_res = commit_to_db(&pool, &payload, &hash).await;
 
     match db_res {
-
         Ok(f) => {
-
-            let token = generate_claim(payload.name, f)
-            .map_err(|e| return e)?;
+            let token = generate_claim(payload.name, f).map_err(|e| return e)?;
             // Send the authorized token
             return Ok(Json(AuthBody::new(token)));
         }
