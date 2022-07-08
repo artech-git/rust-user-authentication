@@ -69,7 +69,7 @@ async fn main() {
         .layer(Extension(pool));
 
     let port = KEY_MAP
-        .get(&"PORT".to_string())
+        .get(&"port".to_string())
         .unwrap_or(&"3000".to_string())
         .parse::<u16>()
         .unwrap();
