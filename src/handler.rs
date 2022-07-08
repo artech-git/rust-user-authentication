@@ -1,16 +1,15 @@
-use axum::{extract::Path, Extension, Json};
-use hyper::StatusCode;
-use serde::Serialize;
-use sqlx::PgPool;
 use crate::{
     db::{internal_error, DatabaseConnection},
     logic::{generate_claim, get_hash},
     obj::{AuthBody, AuthError, Claims, UserAuth, UserDbAuth, UserSignUp},
 };
+use axum::{extract::Path, Extension, Json};
+use hyper::StatusCode;
+use serde::Serialize;
+use sqlx::PgPool;
 
 use std::error::Error;
 use uuid::Uuid;
-
 
 //==============================[protected for authorization]====================================
 pub async fn protected(
@@ -36,7 +35,6 @@ pub async fn protected(
         .await
     {
         Ok(r) => {
-
             let body = generate_claim(r.name, r.uid).map_err(|e| return e)?;
 
             return Ok(Json(AuthBody::new(body)));
@@ -48,7 +46,6 @@ pub async fn protected(
         }
     }
 }
-
 
 //==============================[db transaction]====================================
 
@@ -183,7 +180,7 @@ pub async fn using_connection_pool_extractor(
     match sqlx_core::query_as::query_as::<sqlx_core::postgres::Postgres, jwt>(resp.as_str())
         .fetch_all(&pool)
         .await
-    {   
+    {
         Ok(v) => {
             let mut u: String = " ".to_string();
             for i in v.iter() {
@@ -199,7 +196,6 @@ pub async fn using_connection_pool_extractor(
     }
 }
 //==============================[connection pool extractor]====================================
-
 
 pub async fn using_connection_extractor(
     claim: Claims,

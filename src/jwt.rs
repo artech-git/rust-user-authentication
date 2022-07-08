@@ -40,7 +40,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
     tracing::log::info!("started main");
 
-    let db_url = KEY_MAP.get(&"db_url".to_string()).unwrap();
+    let db_url = KEY_MAP.get(&"DB_URL".to_string()).unwrap();
 
     let pool = match PgPoolOptions::new()
         .max_connections(5)
@@ -59,7 +59,7 @@ async fn main() {
     };
 
     let app = Router::new()
-        .route("/check", get(|| async{ "up".to_string() }))
+        .route("/check", get(|| async { "up".to_string() }))
         .route("/signup/:id", post(sign_up))
         .route("/auth/user/", get(protected))
         .route(
@@ -69,7 +69,7 @@ async fn main() {
         .layer(Extension(pool));
 
     let port = KEY_MAP
-        .get(&"port".to_string())
+        .get(&"PORT".to_string())
         .unwrap_or(&"3000".to_string())
         .parse::<u16>()
         .unwrap();
