@@ -9,19 +9,19 @@ use regex::Regex;
 
 use crate::obj::{AuthError, Claims, KEYS, KEY_MAP};
 
-//TODO validate user input of password
-//TODO validate user input of email string
-//TODO validate user input of name
-
-//TODO apply the improved hashing algorithm for the given function
 pub fn get_hash(client_secret: &String) -> String {
-    let mut hasher = DefaultHasher::new();
 
-    client_secret.hash(&mut hasher);
+    let hash = match bcrypt::hash(client_secret.as_ref() as &str,  5) {
+        Ok(f) => {
+            f
+        }
+        Err(e) => {
+            tracing::log::error!("error in creating a hash of client secret: {}", e);
+            panic!();
+        }
+    };
 
-    let hash = hasher.finish();
-
-    hash.to_string()
+    hash
 }
 
 fn get_exp_time_duration() -> i64 {
