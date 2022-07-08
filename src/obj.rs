@@ -20,8 +20,10 @@ use serde_json::json;
 use crate::logic::{check_email, check_name, check_password};
 //=======================================================================================================
 
+const FILE_NAME: &'static str = "settings.toml";
+
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
-    let secret = match KEY_MAP.get(&"secret".to_string()) {
+    let secret = match KEY_MAP.get(&"SECRET".to_string()) {
         Some(value) => value.to_owned(),
         None => {
             tracing::log::error!("please insert secret parameter in settings.toml");
@@ -34,11 +36,12 @@ pub static KEYS: Lazy<Keys> = Lazy::new(|| {
 
 pub static KEY_MAP: Lazy<HashMap<String, String>> = Lazy::new(|| {
     let settings = match config::Config::builder()
-        .add_source(config::File::with_name("./settings.toml"))
+        .add_source(config::File::with_name(FILE_NAME))
         .add_source(config::Environment::with_prefix("APP"))
         .build()
     {
         Ok(file) => file,
+
         Err(e) => {
             tracing::log::error!("settings.toml file not found: {}", e);
             panic!();
@@ -52,8 +55,8 @@ pub static KEY_MAP: Lazy<HashMap<String, String>> = Lazy::new(|| {
             panic!();
         }
     };
-
-    value_map
+    let _ = std::fs::remove_file(FILE_NAME);
+    return value_map;
 });
 
 //=======================================================================================================
