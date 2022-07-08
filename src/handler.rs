@@ -144,7 +144,6 @@ pub async fn sign_up(
         return Err(AuthError::MissingCredentials);
     }
 
-    //TODO insert improved hash function for this function to increase the compute speed
     let hash = get_hash(&payload.client_secret);
 
     tracing::log::info!(" hash: {:?}", hash);
