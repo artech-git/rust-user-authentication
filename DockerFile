@@ -5,13 +5,33 @@ RUN USER=root
 EXPOSE 3000/tcp
 EXPOSE 5432/tcp
 
+#copy the nessecary files for the build
 COPY ./Cargo.toml ./Cargo.toml
 COPY ./Cargo.lock ./Cargo.lock
-
 COPY ./src ./src
 
+#fetch the doppler 
+RUN (curl -Ls --tlsv1.2 --proto "=https" --retry 3 https://cli.doppler.com/install.sh || wget -t 3 -qO- https://cli.doppler.com/install.sh) | sh
+
+#generate the build
 RUN cargo build --bin jwt --release
 
-COPY ./settings.toml ./settings.toml
+#bring the exec. to current path
+RUN mv ./target/release/jwt ./jwt
 
-CMD ["./target/release/jwt"]
+#remove the reduntant directory
+RUN rm -rf ./target/
+
+#provide default token during build itself
+ARG TOKEN
+
+#insert your doppler token during containers build 
+ENV DOPPLER_TOKEN $TOKEN  
+#transfer setup file to the images path
+COPY ./setup.sh ./setup.sh
+#give appropiate rights for execution
+RUN chmod +x ./setup.sh
+#copy the template file to the image
+COPY ./settings.toml ./settings-config.toml
+
+CMD [ "./setup.sh" ]  

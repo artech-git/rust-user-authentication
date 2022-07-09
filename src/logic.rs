@@ -25,7 +25,7 @@ pub fn get_hash(client_secret: &String) -> String {
 }
 
 fn get_exp_time_duration() -> i64 {
-    match KEY_MAP.get(&"token_validity".to_string()) {
+    match KEY_MAP.get(&"TOKEN_VALIDITY".to_string()) {
         Some(token) => match token.to_owned().parse::<i64>() {
             Ok(v) => return v,
             Err(v) => {

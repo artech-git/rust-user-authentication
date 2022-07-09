@@ -1,7 +1,7 @@
-port = "3000"
-server = "127.0.0.1"
+PORT = "{{.PORT}}"
+SERVER = "{{.SERVER}}"
 
-db_url = "postgres://postgres:postgrespw@192.168.1.14:5432/auth"
+DB_URL = "{{.DB_URL}}"
 
-token_validity = "7200" #insert the values in seconds
-secret = "your secret jwt token"
+TOKEN_VALIDITY = "{{.TOKEN_VALIDITY}}" #insert the values in seconds
+SECRET = "{{.SECRET}}"
