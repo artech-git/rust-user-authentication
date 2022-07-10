@@ -75,10 +75,16 @@ async fn main() {
         .unwrap();
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
+
     tracing::info!("listening on {}", addr);
 
-    axum::Server::bind(&addr)
+    let server = axum::Server::bind(&addr)
+        .http2_enable_connect_protocol()
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .await;
+
+    if let Err(e) = server {
+        tracing::log::error!("error in running the server: {}", e);
+        panic!();
+    }
 }
