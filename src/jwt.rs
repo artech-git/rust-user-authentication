@@ -1,10 +1,3 @@
-//! Example JWT authorization/authentication.
-//!
-//! Run with
-//!
-//! ```not_rust
-//! JWT_SECRET=secret cargo run -p example-jwt
-//! ```
 
 use axum::{
     routing::{get, post},
