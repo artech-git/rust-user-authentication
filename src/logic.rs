@@ -75,7 +75,6 @@ pub fn generate_claim(sub: String, uid: String) -> Result<String, AuthError> {
     return Ok(token);
 }
 
-//todo validation is failing .. diagnose the issue for signup route
 //==================================[credential validation functions]======================================
 pub fn check_email(email: &String) -> bool {
     lazy_static! {//todo evaluate the email constrain too
